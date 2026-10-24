@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     port: int = 8000
     dhan_access_token: str = ""
     dhan_client_id: str = ""
-    database_url: str = "sqlite:///./daytrader_dev.db"
+    database_url: str = "postgresql+psycopg://daytrader:change_me@localhost:5432/daytrader"
     enable_live_orders: bool = False
 
     model_config = SettingsConfigDict(
