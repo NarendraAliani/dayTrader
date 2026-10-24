@@ -1,4 +1,4 @@
-"""Parse official DhanHQ security-master CSV rows into our normalized contract.
+""""Parse official DhanHQ security-master CSV rows into our normalized contract.
 
 The parser supports the documented compact and detailed CSV column names. It
 does not download the master itself; network/retry/scheduling belongs in a
@@ -10,7 +10,7 @@ import csv
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from io import StringIO
-from typing import Iterable, Mapping
+from typing import Mapping
 
 from app.data.instrument_contract import InstrumentIdentity
 
@@ -43,8 +43,9 @@ def _optional_decimal(value: str, field_name: str) -> Decimal | None:
         result = Decimal(value)
     except InvalidOperation as exc:
         raise ValueError(f"invalid {field_name}: {value!r}") from exc
-    # Dhan master commonly uses 0 for non-option strike prices.
-    if field_name == "strike_price" and result == 0:
+    # Dhan master uses zero as a sentinel for absent non-option strikes and,
+    # in some records, absent tick sizes. Store these as SQL NULL, not zero.
+    if field_name in {"strike_price", "tick_size"} and result == 0:
         return None
     return result
 
@@ -98,7 +99,6 @@ def parse_instrument_row(row: Mapping[str, str]) -> InstrumentIdentity | None:
         row, "SEM_TRADING_SYMBOL", "TRADING_SYMBOL", "DISPLAY_NAME",
         "SEM_CUSTOM_SYMBOL", "SYMBOL_NAME", "SM_SYMBOL_NAME",
     )
-    # Index feeds may omit a trading symbol in one source; don't invent one.
     if not security_id or not instrument_type or not trading_symbol:
         raise ValueError("supported Dhan row requires security ID, instrument type and symbol")
 
