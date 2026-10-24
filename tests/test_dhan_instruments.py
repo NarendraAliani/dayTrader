@@ -24,6 +24,20 @@ def test_parses_compact_equity_row():
     assert item.tick_size == Decimal("0.05")
 
 
+def test_zero_tick_size_is_treated_as_missing():
+    row = {
+        "EXCH_ID": "NSE",
+        "SEGMENT": "D",
+        "SECURITY_ID": "12345",
+        "INSTRUMENT": "FUTIDX",
+        "DISPLAY_NAME": "NIFTY FUT",
+        "TICK_SIZE": "0",
+    }
+    item = parse_instrument_row(row)
+    assert item is not None
+    assert item.tick_size is None
+
+
 def test_parses_detailed_option_row():
     row = {
         "EXCH_ID": "NSE",
