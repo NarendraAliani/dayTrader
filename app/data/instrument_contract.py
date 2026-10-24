@@ -10,7 +10,7 @@ from decimal import Decimal
 from typing import Final
 
 SUPPORTED_SEGMENTS: Final[frozenset[str]] = frozenset({
-    "NSE_EQ", "NSE_FNO", "BSE_EQ", "BSE_FNO", "MCX_COMM",
+    "NSE_EQ", "NSE_FNO", "BSE_EQ", "BSE_FNO", "MCX_COMM", "IDX_I",
 })
 
 
