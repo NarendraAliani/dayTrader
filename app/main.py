@@ -42,5 +42,5 @@ def list_strategies() -> dict:
     return {
         "count": len(strategies),
         "strategies": strategies,
-        "message": "Plugin registry is available; no built-in strategy is registered yet.",
+        "message": "Registered plugins are listed; strategy evaluation is not yet connected to market data.",
     }
