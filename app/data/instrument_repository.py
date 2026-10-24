@@ -27,36 +27,51 @@ ON CONFLICT (provider, security_id, exchange_segment) DO UPDATE SET
     updated_at = now()
 """
 
+DEFAULT_BATCH_SIZE = 1_000
 
-def upsert_instruments(connection: Any, instruments: Iterable[InstrumentIdentity]) -> int:
-    """Insert/update instruments atomically; return number of rows attempted.
+
+def upsert_instruments(
+    connection: Any,
+    instruments: Iterable[InstrumentIdentity],
+    *,
+    batch_size: int = DEFAULT_BATCH_SIZE,
+) -> int:
+    """Insert/update instruments in bounded batches within one transaction.
 
     The caller supplies an open psycopg-compatible connection. The migration
     must be applied first. Re-running a master import updates existing records
-    instead of creating duplicates. Any failure rolls the whole batch back.
+    instead of creating duplicates. Any failure rolls the whole import back.
     """
+    if batch_size < 1:
+        raise ValueError("batch_size must be positive")
+
     items = list(instruments)
     if not items:
         return 0
 
+    rows = [
+        (
+            item.provider,
+            item.security_id,
+            item.exchange_segment,
+            item.trading_symbol,
+            item.instrument_type,
+            item.underlying_symbol,
+            item.expiry_date,
+            item.strike_price,
+            item.option_type,
+            item.lot_size,
+            item.tick_size,
+        )
+        for item in items
+    ]
+
     try:
         with connection.cursor() as cursor:
-            for item in items:
-                cursor.execute(
+            for start in range(0, len(rows), batch_size):
+                cursor.executemany(
                     UPSERT_INSTRUMENT_SQL,
-                    (
-                        item.provider,
-                        item.security_id,
-                        item.exchange_segment,
-                        item.trading_symbol,
-                        item.instrument_type,
-                        item.underlying_symbol,
-                        item.expiry_date,
-                        item.strike_price,
-                        item.option_type,
-                        item.lot_size,
-                        item.tick_size,
-                    ),
+                    rows[start : start + batch_size],
                 )
         connection.commit()
     except Exception:
