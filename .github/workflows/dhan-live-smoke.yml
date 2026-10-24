@@ -5,6 +5,7 @@ on:
     branches: ["feature/dhan-contract-validation"]
     paths:
       - ".github/workflows/dhan-live-smoke.yml"
+      - "app/data/dhan_instruments.py"
   workflow_dispatch:
 
 jobs:
