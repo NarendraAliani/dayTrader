@@ -17,10 +17,11 @@ class FakeCursor:
     def __exit__(self, exc_type, exc, tb):
         return False
 
-    def execute(self, query, params):
-        if self.connection.fail:
-            raise RuntimeError("simulated database failure")
-        self.connection.executed.append((query, params))
+    def executemany(self, query, parameter_rows):
+        for params in parameter_rows:
+            if self.connection.fail:
+                raise RuntimeError("simulated database failure")
+            self.connection.executed.append((query, params))
 
 
 class FakeConnection:
@@ -40,10 +41,10 @@ class FakeConnection:
         self.rollbacks += 1
 
 
-def sample_instrument():
+def sample_instrument(security_id="999999"):
     return InstrumentIdentity(
         provider="DHAN",
-        security_id="999999",
+        security_id=security_id,
         exchange_segment="NSE_FNO",
         trading_symbol="NIFTY 25000 CE",
         instrument_type="OPTIDX",
@@ -68,6 +69,18 @@ def test_upsert_writes_expected_fields_and_commits():
     assert params[7:9] == (Decimal("25000"), "CE")
 
 
+def test_large_import_is_split_into_bounded_batches_and_committed_once():
+    connection = FakeConnection()
+    instruments = [sample_instrument(str(index)) for index in range(5)]
+
+    count = upsert_instruments(connection, instruments, batch_size=2)
+
+    assert count == 5
+    assert len(connection.executed) == 5
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
+
+
 def test_empty_batch_does_not_touch_database():
     connection = FakeConnection()
     assert upsert_instruments(connection, []) == 0
@@ -82,3 +95,11 @@ def test_database_failure_rolls_back_and_reraises():
         upsert_instruments(connection, [sample_instrument()])
     assert connection.commits == 0
     assert connection.rollbacks == 1
+
+
+def test_batch_size_must_be_positive():
+    connection = FakeConnection()
+    with pytest.raises(ValueError, match="batch_size must be positive"):
+        upsert_instruments(connection, [sample_instrument()], batch_size=0)
+    assert connection.commits == 0
+    assert connection.executed == []
