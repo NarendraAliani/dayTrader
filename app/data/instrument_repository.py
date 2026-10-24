@@ -30,6 +30,22 @@ ON CONFLICT (provider, security_id, exchange_segment) DO UPDATE SET
 DEFAULT_BATCH_SIZE = 1_000
 
 
+def _instrument_values(item: InstrumentIdentity) -> tuple:
+    return (
+        item.provider,
+        item.security_id,
+        item.exchange_segment,
+        item.trading_symbol,
+        item.instrument_type,
+        item.underlying_symbol,
+        item.expiry_date,
+        item.strike_price,
+        item.option_type,
+        item.lot_size,
+        item.tick_size,
+    )
+
+
 def upsert_instruments(
     connection: Any,
     instruments: Iterable[InstrumentIdentity],
@@ -49,29 +65,13 @@ def upsert_instruments(
     if not items:
         return 0
 
-    rows = [
-        (
-            item.provider,
-            item.security_id,
-            item.exchange_segment,
-            item.trading_symbol,
-            item.instrument_type,
-            item.underlying_symbol,
-            item.expiry_date,
-            item.strike_price,
-            item.option_type,
-            item.lot_size,
-            item.tick_size,
-        )
-        for item in items
-    ]
-
     try:
         with connection.cursor() as cursor:
-            for start in range(0, len(rows), batch_size):
+            for start in range(0, len(items), batch_size):
+                batch = items[start : start + batch_size]
                 cursor.executemany(
                     UPSERT_INSTRUMENT_SQL,
-                    rows[start : start + batch_size],
+                    [_instrument_values(item) for item in batch],
                 )
         connection.commit()
     except Exception:
