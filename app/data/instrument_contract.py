@@ -47,5 +47,7 @@ class InstrumentIdentity:
             raise ValueError("strike_price cannot be negative")
         if self.option_type is not None and self.option_type not in {"CE", "PE"}:
             raise ValueError("option_type must be CE or PE")
+        if self.option_type is not None and not self.instrument_type.upper().startswith("OPT"):
+            raise ValueError("option_type is only valid for option instruments")
         if self.option_type is not None and self.strike_price is None:
             raise ValueError("option instruments require strike_price")
