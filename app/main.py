@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from fastapi import FastAPI
 from app.core.config import settings
+from app.strategies.registry import registry
 
 app = FastAPI(
     title=settings.app_name,
@@ -37,8 +38,9 @@ def system_status() -> dict:
 
 @app.get("/api/v1/strategies", tags=["strategies"])
 def list_strategies() -> dict:
+    strategies = registry.list()
     return {
-        "count": 0,
-        "strategies": [],
-        "message": "Plugin registry is the next implementation stage; no strategy is enabled yet.",
+        "count": len(strategies),
+        "strategies": strategies,
+        "message": "Plugin registry is available; no built-in strategy is registered yet.",
     }
