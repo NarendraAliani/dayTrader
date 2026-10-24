@@ -1,8 +1,9 @@
 from app.strategies.base import Strategy
+from app.strategies.ema_trend import EmaTrendStrategy
 
 
 class StrategyRegistry:
-    """In-memory registry; strategy discovery/config loading will be added next."""
+    """In-memory registry; config-driven enablement and discovery come next."""
 
     def __init__(self) -> None:
         self._strategies: dict[str, Strategy] = {}
@@ -22,15 +23,10 @@ class StrategyRegistry:
             raise KeyError(f"Unknown strategy: {strategy_id}") from exc
 
     def list(self) -> list[dict[str, str | bool]]:
-        return [
-            {
-                "strategy_id": strategy.strategy_id,
-                "name": strategy.name,
-                "version": strategy.version,
-                "enabled_by_default": strategy.enabled_by_default,
-            }
-            for strategy in self._strategies.values()
-        ]
+        return [{"strategy_id": s.strategy_id, "name": s.name, "version": s.version,
+                 "enabled_by_default": s.enabled_by_default}
+                for s in self._strategies.values()]
 
 
 registry = StrategyRegistry()
+registry.register(EmaTrendStrategy())
